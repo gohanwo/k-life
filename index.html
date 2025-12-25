@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生K线 - 原型演示</title>
+    <!-- Ant Design CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5.12.8/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5.12.8/dist/antd.min.css">
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            position: relative;
+        }
+
+        .page {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: rgba(0, 0, 0, 0.85);
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        h2 {
+            color: rgba(0, 0, 0, 0.45);
+            font-size: 14px;
+            margin-bottom: 24px;
+            text-align: center;
+            font-weight: 400;
+        }
+
+        .ant-btn {
+            height: 40px;
+            padding: 4px 15px;
+            font-size: 14px;
+            border-radius: 6px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .ant-btn-primary {
+            background: #ffffff;
+            border-color: #d9d9d9;
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        .ant-btn-primary:hover {
+            background: #fafafa;
+            border-color: #40a9ff;
+            color: #40a9ff;
+        }
+
+        .ant-btn-primary:active,
+        .ant-btn-primary:focus {
+            background: #fafafa;
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+
+        .input-block {
+            background: #fafafa;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .input-block h3 {
+            color: rgba(0, 0, 0, 0.85);
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            color: rgba(0, 0, 0, 0.85);
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            height: 32px;
+            padding: 4px 11px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #fff;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #40a9ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+
+        .form-group input:hover,
+        .form-group select:hover {
+            border-color: #40a9ff;
+        }
+
+        .four-pillars-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .analysis-mode {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 8px 16px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fff;
+            color: rgba(0, 0, 0, 0.85);
+        }
+
+        .mode-option:hover {
+            border-color: #40a9ff;
+            color: #40a9ff;
+        }
+
+        .mode-option.selected {
+            border-color: #1890ff;
+            background: #e6f7ff;
+            color: #1890ff;
+        }
+
+        .loading-page {
+            text-align: center;
+            padding: 60px 30px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #1890ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-bottom: 30px;
+        }
+
+        .result-section h3 {
+            color: rgba(0, 0, 0, 0.85);
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .lucky-years {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .year-badge {
+            background: #fff7e6;
+            color: #d46b08;
+            padding: 4px 12px;
+            border: 1px solid #ffd591;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .aspect-analysis {
+            background: #fafafa;
+            padding: 16px;
+            border: 1px solid #f0f0f0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .aspect-analysis h4 {
+            color: #1890ff;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .aspect-analysis p {
+            color: rgba(0, 0, 0, 0.65);
+            font-size: 14px;
+            line-height: 1.5715;
+            margin: 0;
+        }
+
+        .disclaimer {
+            text-align: center;
+            color: rgba(0, 0, 0, 0.45);
+            font-size: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 登录页 -->
+        <div class="page active" id="loginPage">
+            <h1>人生K线</h1>
+            <h2>探索您的命运轨迹</h2>
+            <button class="ant-btn ant-btn-primary" onclick="handleLogin()">微信登录</button>
+        </div>
+
+        <!-- 首页 -->
+        <div class="page" id="homePage">
+            <h1>个人信息</h1>
+            
+            <div class="input-block">
+                <h3>基本信息</h3>
+                <div class="form-group">
+                    <label>姓名</label>
+                    <input type="text" id="userName" placeholder="请输入姓名" value="张三">
+                </div>
+                <div class="form-group">
+                    <label>出生年月日</label>
+                    <input type="date" id="birthDate" value="1990-01-15">
+                </div>
+                <div class="form-group">
+                    <label>性别</label>
+                    <select id="gender">
+                        <option value="MALE">男</option>
+                        <option value="FEMALE">女</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-block">
+                <h3>四柱信息</h3>
+                <div class="four-pillars-grid">
+                    <div class="form-group">
+                        <label>年柱</label>
+                        <input type="text" id="yearPillar" placeholder="如：甲子" value="庚午">
+                    </div>
+                    <div class="form-group">
+                        <label>月柱</label>
+                        <input type="text" id="monthPillar" placeholder="如：乙丑" value="戊寅">
+                    </div>
+                    <div class="form-group">
+                        <label>日柱</label>
+                        <input type="text" id="dayPillar" placeholder="如：丙寅" value="甲子">
+                    </div>
+                    <div class="form-group">
+                        <label>时柱</label>
+                        <input type="text" id="hourPillar" placeholder="如：丁卯" value="辛未">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-block">
+                <h3>分析模式</h3>
+                <div class="analysis-mode">
+                    <div class="mode-option" onclick="selectMode('BASIC')">基础</div>
+                    <div class="mode-option selected" onclick="selectMode('DETAILED')">详细</div>
+                    <div class="mode-option" onclick="selectMode('COMPREHENSIVE')">综合</div>
+                </div>
+            </div>
+
+            <button class="ant-btn ant-btn-primary" onclick="handleCalculate()">开始计算</button>
+        </div>
+
+        <!-- 计算过渡页 -->
+        <div class="page" id="loadingPage">
+            <div class="loading-page">
+                <div class="loading-spinner"></div>
+                <h1>正在计算中...</h1>
+                <h2>AI正在分析您的命理信息</h2>
+                <p style="color: rgba(0, 0, 0, 0.45); margin-top: 20px;">请稍候，这可能需要几秒钟</p>
+            </div>
+        </div>
+
+        <!-- 计算结果页 -->
+        <div class="page" id="resultPage">
+            <h1>计算结果</h1>
+
+            <div class="result-section">
+                <h3>人生K线图</h3>
+                <div class="chart-container" id="klineChart"></div>
+            </div>
+
+            <div class="result-section">
+                <h3>命理分析</h3>
+                <div class="aspect-analysis">
+                    <p id="fortuneAnalysis">根据您的四柱分析，您是一个性格开朗、积极向上的人。您的事业发展顺利，财运亨通，身体健康，感情生活美满，学业有成。您的人生轨迹呈现出稳步上升的趋势，在关键年份会有重要转折点。</p>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>好运年份</h3>
+                <div class="lucky-years" id="luckyYears">
+                    <span class="year-badge">2020</span>
+                    <span class="year-badge">2025</span>
+                    <span class="year-badge">2030</span>
+                    <span class="year-badge">2035</span>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>各方面分析</h3>
+                <div class="aspect-analysis">
+                    <h4>性格</h4>
+                    <p>您性格开朗，善于交际，具有很强的领导能力和组织能力。您做事果断，有主见，能够在困难面前保持冷静。</p>
+                </div>
+                <div class="aspect-analysis">
+                    <h4>事业</h4>
+                    <p>您的事业发展顺利，在职场中表现出色。您有很强的执行力和创新能力，能够在团队中发挥重要作用。</p>
+                </div>
+                <div class="aspect-analysis">
+                    <h4>财运</h4>
+                    <p>您的财运亨通，正财和偏财都有不错的收获。您有良好的理财能力，能够合理规划财务，实现财富积累。</p>
+                </div>
+                <div class="aspect-analysis">
+                    <h4>健康</h4>
+                    <p>您的身体健康，精力充沛。建议保持规律的作息和适度的运动，注意饮食健康，预防慢性疾病。</p>
+                </div>
+                <div class="aspect-analysis">
+                    <h4>感情</h4>
+                    <p>您的感情生活美满，与伴侣关系和谐。您懂得经营感情，能够在感情中给予对方足够的关爱和支持。</p>
+                </div>
+                <div class="aspect-analysis">
+                    <h4>学业</h4>
+                    <p>您的学业有成，学习能力强，能够快速掌握新知识。您在学术或专业领域有很好的发展前景。</p>
+                </div>
+            </div>
+
+            <div class="disclaimer">仅供参考</div>
+
+            <button class="ant-btn ant-btn-primary" onclick="goToHome()">重新计算</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 'loginPage';
+        let selectedMode = 'DETAILED';
+        let klineChart = null;
+
+        // 页面切换函数
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            currentPage = pageId;
+
+            // 如果切换到结果页，初始化图表
+            if (pageId === 'resultPage' && !klineChart) {
+                setTimeout(() => {
+                    initKlineChart();
+                }, 100);
+            }
+        }
+
+        // 登录处理
+        function handleLogin() {
+            showPage('homePage');
+        }
+
+        // 选择分析模式
+        function selectMode(mode) {
+            selectedMode = mode;
+            document.querySelectorAll('.mode-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+
+        // 计算处理
+        function handleCalculate() {
+            showPage('loadingPage');
+            
+            // 模拟计算过程，3秒后跳转到结果页
+            setTimeout(() => {
+                showPage('resultPage');
+            }, 3000);
+        }
+
+        // 返回首页
+        function goToHome() {
+            showPage('homePage');
+        }
+
+        // 初始化K线图
+        function initKlineChart() {
+            const chartDom = document.getElementById('klineChart');
+            klineChart = echarts.init(chartDom);
+
+            // 模拟K线数据
+            const dates = [];
+            const values = [];
+            const baseDate = new Date('1990-01-15');
+            
+            // 生成从出生年份到未来30年的数据
+            for (let i = 0; i <= 30; i++) {
+                const date = new Date(baseDate);
+                date.setFullYear(baseDate.getFullYear() + i);
+                dates.push(date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0'));
+                
+                // 生成模拟的K线数值（带波动）
+                const baseValue = 50 + i * 2;
+                const fluctuation = Math.sin(i * 0.5) * 10;
+                const value = Math.max(0, Math.min(100, baseValue + fluctuation));
+                values.push(value);
+            }
+
+            const option = {
+                title: {
+                    text: '人生K线走势图',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 16,
+                        color: '#333'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const param = params[0];
+                        return param.name + '<br/>' +
+                               '运势值: ' + param.value.toFixed(1) + '<br/>' +
+                               '年份: ' + param.name.split('-')[0];
+                    }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    top: '20%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLabel: {
+                        rotate: 45,
+                        formatter: function(value) {
+                            return value.split('-')[0];
+                        }
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '运势值',
+                    min: 0,
+                    max: 100,
+                    axisLabel: {
+                        formatter: '{value}'
+                    }
+                },
+                dataZoom: [
+                    {
+                        type: 'slider',
+                        start: 0,
+                        end: 50,
+                        height: 20
+                    },
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 50
+                    }
+                ],
+                series: [
+                    {
+                        name: '运势',
+                        type: 'line',
+                        data: values,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#1890ff',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#1890ff'
+                        },
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 0,
+                                y2: 1,
+                                colorStops: [
+                                    { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
+                                    { offset: 1, color: 'rgba(24, 144, 255, 0.05)' }
+                                ]
+                            }
+                        },
+                        markPoint: {
+                            data: [
+                                { name: '出生年份', coord: [0, values[0]], itemStyle: { color: '#faad14' } },
+                                { name: '好运年份', coord: [10, values[10]], itemStyle: { color: '#faad14' } },
+                                { name: '好运年份', coord: [15, values[15]], itemStyle: { color: '#faad14' } },
+                                { name: '好运年份', coord: [20, values[20]], itemStyle: { color: '#faad14' } }
+                            ]
+                        }
+                    }
+                ]
+            };
+
+            klineChart.setOption(option);
+
+            // 响应式调整
+            window.addEventListener('resize', () => {
+                if (klineChart) {
+                    klineChart.resize();
+                }
+            });
+        }
+
+        // 页面加载完成后，如果是直接访问结果页，初始化图表
+        window.addEventListener('load', () => {
+            if (currentPage === 'resultPage') {
+                setTimeout(() => {
+                    initKlineChart();
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
+
